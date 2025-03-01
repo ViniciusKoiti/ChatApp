@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 abstract class IApiService {
   Future<String> getResponse(String message);
@@ -26,5 +28,27 @@ class ChatController extends ChangeNotifier {
 
     _messages.add({'role': 'ai', 'text': response});
     notifyListeners();
+  }
+  
+  // Função para compartilhar uma resposta específica
+  Future<void> shareResponse(Map<String, String> message) async {
+    if (message['text'] == null || message['text']!.isEmpty) return;
+    
+    try {
+      await Share.share(message['text']!);
+    } catch (e) {
+      debugPrint('Erro ao compartilhar mensagem: $e');
+    }
+  }
+  
+  // Função para copiar a resposta para a área de transferência
+  Future<void> copyResponseToClipboard(Map<String, String> message) async {
+    if (message['text'] == null || message['text']!.isEmpty) return;
+    
+    try {
+      await Clipboard.setData(ClipboardData(text: message['text']!));
+    } catch (e) {
+      debugPrint('Erro ao copiar mensagem: $e');
+    }
   }
 }
