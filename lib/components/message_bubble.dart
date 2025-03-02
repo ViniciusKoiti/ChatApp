@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:jesusapp/components/buttons/copy_button.dart';
 import 'package:jesusapp/components/buttons/share_button.dart';
 import 'package:jesusapp/components/christian_header.dart';
+import 'package:share_plus/share_plus.dart';
 
 class MessageBubble extends StatelessWidget {
   final Map<String, String> message;
@@ -100,6 +101,41 @@ class MessageBubble extends StatelessWidget {
                             isChristian: isChristian,
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: theme.colorScheme.secondary,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () async {
+                              try {
+                                // Mostrar indicador de carregamento
+                                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                                scaffoldMessenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Gerando áudio...'),
+                                    duration: Duration(milliseconds: 500),
+                                  ),
+                                );
+                                
+                                final audioUrl = await chatController.mockAiService.generateAudioFromText(message['text']!);
+                                
+                                // Compartilhar áudio usando share_plus
+                                await Share.share('Ouça esta mensagem: $audioUrl', 
+                                  subject: 'Mensagem de áudio compartilhada');
+                                
+                              } catch (e) {
+                                // Mostrar erro
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Erro ao gerar áudio: $e')),
+                                );
+                              }
+                            },
+                            child: const Icon(Icons.volume_up, size: 18),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                       ],
                     ),
                   ),

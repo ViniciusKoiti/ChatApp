@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:jesusapp/theme/theme_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:jesusapp/service/mockAiService.dart';
 
 abstract class IApiService {
   Future<String> getResponse(String message);
@@ -101,4 +102,7 @@ class ChatController extends ChangeNotifier {
       debugPrint('Erro ao copiar mensagem: $e');
     }
   }
+
+  // Método para acessar o serviço de IA (para geração de áudio)
+  MockAiService get mockAiService => apiService as MockAiService;
 }

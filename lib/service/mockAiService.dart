@@ -12,10 +12,8 @@ class MockAiService implements IApiService {
   
   @override
   Future<String> getResponse(String message) async {
-    // Simular tempo de resposta variável para parecer mais natural
     await Future.delayed(Duration(milliseconds: 500 + _random.nextInt(1500)));
     
-    // Verificar se estamos no tema cristão
     final appType = themeProvider?.getConfig<String>('appType', defaultValue: '') ?? '';
     final isChristian = appType == 'christian';
     
@@ -29,7 +27,6 @@ class MockAiService implements IApiService {
   String _getChristianResponse(String message) {
     message = message.toLowerCase();
     
-    // Respostas para temas comuns
     if (message.contains('fé') || message.contains('acreditar')) {
       return 'A fé é a certeza daquilo que esperamos e a prova das coisas que não vemos (Hebreus 11:1). Em momentos de dúvida, lembre-se que a fé do tamanho de um grão de mostarda pode mover montanhas. Cultive sua fé através da oração, da leitura da Palavra e da comunhão com outros cristãos.\n\nJesus nos ensina: "Tudo é possível àquele que crê" (Marcos 9:23).';
     }
@@ -112,5 +109,33 @@ class MockAiService implements IApiService {
     ];
     
     return responses[_random.nextInt(responses.length)];
+  }
+
+  // Simulate audio generation from text
+  Future<String> generateAudioFromText(String text) async {
+    await Future.delayed(Duration(milliseconds: 500)); // Simulate processing delay
+    
+    // Gerar um identificador baseado no texto
+    final String safeText = text.replaceAll(RegExp(r'[^\w\s]'), '').replaceAll(' ', '_').toLowerCase();
+    final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+    final String uuid = '${timestamp.substring(timestamp.length - 6)}_${_random.nextInt(10000)}';
+    
+    // Escolher um tipo de áudio simulado com base no conteúdo
+    String audioType;
+    if (text.toLowerCase().contains('oração') || text.toLowerCase().contains('rezar')) {
+      audioType = 'oracao';
+    } else if (text.toLowerCase().contains('bíblia') || text.toLowerCase().contains('versículo')) {
+      audioType = 'biblia';
+    } else if (text.toLowerCase().contains('amor') || text.toLowerCase().contains('paz')) {
+      audioType = 'meditacao';
+    } else if (text.toLowerCase().contains('fé') || text.toLowerCase().contains('esperança')) {
+      audioType = 'inspiracao';
+    } else {
+      audioType = 'mensagem';
+    }
+    
+    // Simular um caminho de arquivo local
+    final shortText = safeText.length > 20 ? safeText.substring(0, 20) : safeText;
+    return 'mock://audio/$audioType/$uuid-$shortText.mp3';
   }
 }
