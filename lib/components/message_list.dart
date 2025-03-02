@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:jesusapp/components/message_bubble.dart';
 import 'package:jesusapp/theme/theme_provider.dart';
+import 'package:jesusapp/components/cross_pattern_painter.dart';
 import 'package:provider/provider.dart';
 
 class MessageList extends StatelessWidget {
@@ -57,16 +58,14 @@ class MessageList extends StatelessWidget {
   }
   
   Widget _buildBackgroundPattern(BuildContext context) {
-    return Opacity(
-      opacity: 0.03,
-      child: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/cross_pattern.png'),
-            repeat: ImageRepeat.repeat,
-          ),
-        ),
+    final theme = Theme.of(context);
+    return CustomPaint(
+      painter: CrossPatternPainter(
+        color: theme.colorScheme.primary,
+        opacity: 0.03,
+        density: 25.0,
       ),
+      child: Container(),
     );
   }
   

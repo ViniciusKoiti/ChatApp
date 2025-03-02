@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:jesusapp/chat/chatController.dart';
 import 'package:jesusapp/theme/theme_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:jesusapp/components/buttons/copy_button.dart';
+import 'package:jesusapp/components/buttons/share_button.dart';
+import 'package:jesusapp/components/christian_header.dart';
 
 class MessageBubble extends StatelessWidget {
   final Map<String, String> message;
@@ -36,7 +39,7 @@ class MessageBubble extends StatelessWidget {
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
+          maxWidth: MediaQuery.of(context).size.width * (MediaQuery.of(context).size.width < 600 ? 0.75 : 0.6),
         ),
         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
         padding: const EdgeInsets.all(12),
@@ -55,7 +58,7 @@ class MessageBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (!isUser && isChristian) ...[
-              _buildChristianHeader(theme),
+              ChristianHeader(theme: theme),
             ],
             Text(
               message['text']!,
@@ -75,92 +78,29 @@ class MessageBubble extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Material(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                    child: Tooltip(
-                      message: shareButtonLabel,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: () => chatController.shareResponse(message),
-                        child: Container(
-                          padding: const EdgeInsets.all(6.0),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                isChristian ? Icons.share : Icons.share_rounded,
-                                size: 20,
-                                color: theme.colorScheme.primary,
-                              ),
-                              if (isChristian) ...[
-                                const SizedBox(width: 4),
-                                Text(
-                                  shareButtonLabel,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                ),
-                              ],
-                            ],
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: ShareButton(
+                            message: message,
+                            chatController: chatController,
+                            shareButtonLabel: shareButtonLabel,
+                            isChristian: isChristian,
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Material(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                    child: Tooltip(
-                      message: 'Copiar para área de transferência',
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: () {
-                          chatController.copyResponseToClipboard(message);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(copiedMessage),
-                              duration: const Duration(seconds: 2),
-                              backgroundColor: theme.colorScheme.primary,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(6.0),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                isChristian ? Icons.content_copy : Icons.content_copy_rounded,
-                                size: 20,
-                                color: theme.colorScheme.primary,
-                              ),
-                              if (isChristian) ...[
-                                const SizedBox(width: 4),
-                                Text(
-                                  copyButtonLabel,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                ),
-                              ],
-                            ],
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: CopyButton(
+                            message: message,
+                            chatController: chatController,
+                            copiedMessage: copiedMessage,
+                            copyButtonLabel: copyButtonLabel,
+                            isChristian: isChristian,
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ],
@@ -169,34 +109,6 @@ class MessageBubble extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-  
-  Widget _buildChristianHeader(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.auto_awesome,
-              size: 16,
-              color: theme.colorScheme.secondary,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              'Reflexão',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.secondary,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-      ],
     );
   }
 } 
