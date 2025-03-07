@@ -4,6 +4,7 @@ import 'package:jesusapp/theme/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:jesusapp/screens/christian_home_screen.dart';
 import 'package:jesusapp/service/authMockService.dart';
+import 'package:jesusapp/theme/app_flavor.dart';
 
 class ChatApp extends StatelessWidget {
   const ChatApp({super.key});
@@ -12,20 +13,18 @@ class ChatApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer2<ThemeProvider, AuthMockService>(
       builder: (context, themeProvider, authService, _) {
-        final appType = themeProvider.getConfig<String>('appType', defaultValue: '');
-        final isChristian = appType == 'christian';
+        final appType = themeProvider.getConfig<String>('appType', defaultValue: AppFlavor.defaultFlavor);
+        final isChristian = appType == AppFlavor.christian;
         
         // Configurações personalizadas baseadas no flavor
         final appName = themeProvider.getConfig<String>(
           'appName', 
-          defaultValue: isChristian ? 'Assistente Cristão' : 'JesusApp'
+          defaultValue: isChristian ? AppFlavor.christianAppName : AppFlavor.defaultAppName
         );
         
         final logoutConfirmMessage = themeProvider.getConfig<String>(
           'logoutConfirmMessage', 
-          defaultValue: isChristian 
-              ? 'Tem certeza que deseja encerrar sua sessão?' 
-              : 'Tem certeza que deseja sair?'
+          defaultValue: isChristian ? AppFlavor.christianLogoutMessage : AppFlavor.defaultLogoutMessage
         );
         
         return Scaffold(
@@ -52,7 +51,7 @@ class ChatApp extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     child: Text(
-                      'Modo: $appType',
+                      isChristian ? AppFlavor.christianModeLabel : AppFlavor.defaultModeLabel,
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
@@ -63,37 +62,37 @@ class ChatApp extends StatelessWidget {
               ],
               IconButton(
                 icon: const Icon(Icons.logout),
-                tooltip: 'Sair',
-                onPressed: () {
-                  // Mostrar diálogo de confirmação
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: Text(isChristian ? 'Encerrar Sessão' : 'Confirmar logout'),
-                      content: Text(logoutConfirmMessage),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancelar'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            // Fazer logout
-                            Provider.of<AuthMockService>(context, listen: false).logout();
-                          },
-                          child: Text(isChristian ? 'Encerrar' : 'Sair'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                tooltip: isChristian ? AppFlavor.christianLogoutButton : AppFlavor.defaultLogoutButton,
+                onPressed: () => _showLogoutDialog(context, isChristian, authService),
               ),
             ],
           ),
           body: isChristian ? const ChristianHomeScreen() : const ChatScreen(),
         );
       },
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context, bool isChristian, AuthMockService authService) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isChristian ? AppFlavor.christianLogoutTitle : AppFlavor.defaultLogoutTitle),
+        content: Text(isChristian ? AppFlavor.christianLogoutMessage : AppFlavor.defaultLogoutMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              authService.logout();
+            },
+            child: Text(isChristian ? AppFlavor.christianLogoutButton : AppFlavor.defaultLogoutButton),
+          ),
+        ],
+      ),
     );
   }
 }

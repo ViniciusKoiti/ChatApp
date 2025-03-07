@@ -18,10 +18,12 @@ class ChatScreen extends StatelessWidget {
     final chatController = Provider.of<ChatController>(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
     final theme = Theme.of(context);
-    final appName = themeProvider.getConfig<String>('appName', defaultValue: 'Assistente Virtual');
-    final appType = themeProvider.getConfig<String>('appType', defaultValue: '');
+    final appName = themeProvider.getConfig<String>('appName',
+        defaultValue: 'Assistente Virtual');
+    final appType =
+        themeProvider.getConfig<String>('appType', defaultValue: '');
     final isChristian = appType == 'christian';
-    
+
     // Obter um versículo aleatório
     final verse = VerseService.getRandomVerse();
 
@@ -117,16 +119,16 @@ class ChatScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   void _showAboutDialog(BuildContext context, ThemeProvider themeProvider) {
-    final appName = themeProvider.getConfig<String>('appName', defaultValue: 'Assistente Virtual');
-    final appDescription = themeProvider.getConfig<String>(
-      'appDescription', 
-      defaultValue: 'Um assistente virtual para conversas'
-    );
-    final appType = themeProvider.getConfig<String>('appType', defaultValue: '');
+    final appName = themeProvider.getConfig<String>('appName',
+        defaultValue: 'Assistente Virtual');
+    final appDescription = themeProvider.getConfig<String>('appDescription',
+        defaultValue: 'Um assistente virtual para conversas');
+    final appType =
+        themeProvider.getConfig<String>('appType', defaultValue: '');
     final isChristian = appType == 'christian';
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
