@@ -9,22 +9,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'chat/chatApp.dart';
 
-// Enum para definir os flavors disponíveis
 enum AppFlavor { standard, christian }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Carregar o flavor salvo ou usar o padrão
   final prefs = await SharedPreferences.getInstance();
   final String? savedAppType = prefs.getString('currentAppType');
-  
+
   // Inicializar o ThemeProvider com o flavor correto
   final themeProvider = ThemeProvider();
   if (savedAppType != null) {
     themeProvider.setConfig('appType', savedAppType);
   }
-  
+
   runApp(
     MultiProvider(
       providers: [
@@ -37,12 +36,16 @@ void main() async {
         ChangeNotifierProxyProvider<ThemeProvider, ChatController>(
           create: (context) => ChatController(
             apiService: MockAiService(
-              themeProvider: Provider.of<ThemeProvider>(context, listen: false),
+              initialFlavor: Provider.of<ThemeProvider>(context, listen: false)
+                  .getConfig<String>('appType', defaultValue: ''),
             ),
             themeProvider: Provider.of<ThemeProvider>(context, listen: false),
           ),
           update: (context, themeProvider, previous) => ChatController(
-            apiService: MockAiService(themeProvider: themeProvider),
+            apiService: MockAiService(
+              initialFlavor:
+                  themeProvider.getConfig<String>('appType', defaultValue: ''),
+            ),
             themeProvider: themeProvider,
           ),
         ),
@@ -61,21 +64,23 @@ class MyApp extends StatelessWidget {
       builder: (context, themeProvider, authService, _) {
         // Verificar se há um flavor salvo do login que precisa ser aplicado
         final String? authAppType = authService.currentAppType;
-        final String currentAppType = themeProvider.getConfig<String>('appType', defaultValue: '');
-        
+        final String currentAppType =
+            themeProvider.getConfig<String>('appType', defaultValue: '');
+
         // Se o usuário estiver logado e o flavor salvo for diferente do atual, atualizar
-        if (authService.isAuthenticated && 
-            authAppType != null && 
+        if (authService.isAuthenticated &&
+            authAppType != null &&
             authAppType != currentAppType) {
           // Atualizar o flavor no ThemeProvider
           WidgetsBinding.instance.addPostFrameCallback((_) {
             themeProvider.setConfig('appType', authAppType);
           });
         }
-        
+
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          title: themeProvider.getConfig<String>('appName', defaultValue: 'Assistente Virtual'),
+          title: themeProvider.getConfig<String>('appName',
+              defaultValue: 'Assistente Virtual'),
           theme: themeProvider.themeData,
           home: const AuthWrapper(),
         );
@@ -91,7 +96,7 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     // Observa o estado de autenticação
     final authService = Provider.of<AuthMockService>(context);
-    
+
     // Mostra a tela de login ou o ChatApp dependendo do estado de autenticação
     if (authService.isAuthenticated) {
       return const ChatApp();

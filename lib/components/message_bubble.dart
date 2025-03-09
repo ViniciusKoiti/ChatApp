@@ -8,7 +8,7 @@ import 'package:jesusapp/components/christian_header.dart';
 import 'package:share_plus/share_plus.dart';
 
 class MessageBubble extends StatelessWidget {
-  final Map<String, String> message;
+  final Map<String, dynamic> message;
 
   const MessageBubble({
     super.key,
@@ -21,26 +21,25 @@ class MessageBubble extends StatelessWidget {
     final chatController = Provider.of<ChatController>(context, listen: false);
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final theme = Theme.of(context);
-    final copiedMessage = themeProvider.getConfig<String>(
-      'copiedMessage',
-      defaultValue: 'Resposta copiada para a área de transferência'
-    );
-    final shareButtonLabel = themeProvider.getConfig<String>(
-      'shareButtonLabel',
-      defaultValue: 'Compartilhar'
-    );
-    final copyButtonLabel = themeProvider.getConfig<String>(
-      'copyButtonLabel',
-      defaultValue: 'Copiar'
-    );
-    final appType = themeProvider.getConfig<String>('appType', defaultValue: '');
+    final copiedMessage = themeProvider.getConfig<String>('copiedMessage',
+        defaultValue: 'Resposta copiada para a área de transferência');
+    final shareButtonLabel = themeProvider.getConfig<String>('shareButtonLabel',
+        defaultValue: 'Compartilhar');
+    final copyButtonLabel = themeProvider.getConfig<String>('copyButtonLabel',
+        defaultValue: 'Copiar');
+    final appType =
+        themeProvider.getConfig<String>('appType', defaultValue: '');
     final isChristian = appType == 'christian';
+
+    // Extrair o texto da mensagem
+    final messageText = message['text'].toString();
 
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * (MediaQuery.of(context).size.width < 600 ? 0.75 : 0.6),
+          maxWidth: MediaQuery.of(context).size.width *
+              (MediaQuery.of(context).size.width < 600 ? 0.75 : 0.6),
         ),
         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
         padding: const EdgeInsets.all(12),
@@ -62,7 +61,7 @@ class MessageBubble extends StatelessWidget {
               ChristianHeader(theme: theme),
             ],
             Text(
-              message['text']!,
+              messageText,
               style: TextStyle(
                 color: isUser ? Colors.white : theme.colorScheme.onSurface,
                 fontSize: 15,
@@ -111,24 +110,27 @@ class MessageBubble extends StatelessWidget {
                             onPressed: () async {
                               try {
                                 // Mostrar indicador de carregamento
-                                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                                final scaffoldMessenger =
+                                    ScaffoldMessenger.of(context);
                                 scaffoldMessenger.showSnackBar(
                                   const SnackBar(
                                     content: Text('Gerando áudio...'),
                                     duration: Duration(milliseconds: 500),
                                   ),
                                 );
-                                
-                                final audioUrl = await chatController.mockAiService.generateAudioFromText(message['text']!);
-                                
+
+                                final audioUrl = await chatController
+                                    .generateAudioFromText(messageText);
+
                                 // Compartilhar áudio usando share_plus
-                                await Share.share('Ouça esta mensagem: $audioUrl', 
-                                  subject: 'Mensagem de áudio compartilhada');
-                                
+                                await Share.share(
+                                    'Ouça esta mensagem: $audioUrl',
+                                    subject: 'Mensagem de áudio compartilhada');
                               } catch (e) {
                                 // Mostrar erro
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Erro ao gerar áudio: $e')),
+                                  SnackBar(
+                                      content: Text('Erro ao gerar áudio: $e')),
                                 );
                               }
                             },
@@ -147,4 +149,4 @@ class MessageBubble extends StatelessWidget {
       ),
     );
   }
-} 
+}

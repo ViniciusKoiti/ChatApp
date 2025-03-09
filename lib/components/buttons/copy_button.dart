@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:jesusapp/chat/chatController.dart';
 
 class CopyButton extends StatefulWidget {
-  final Map<String, String> message;
+  final Map<String, dynamic> message;
   final ChatController chatController;
   final String copiedMessage;
   final String copyButtonLabel;
@@ -21,7 +21,8 @@ class CopyButton extends StatefulWidget {
   State<CopyButton> createState() => _CopyButtonState();
 }
 
-class _CopyButtonState extends State<CopyButton> with SingleTickerProviderStateMixin {
+class _CopyButtonState extends State<CopyButton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   bool _isPressed = false;
 
@@ -44,7 +45,7 @@ class _CopyButtonState extends State<CopyButton> with SingleTickerProviderStateM
     setState(() {
       _isPressed = true;
     });
-    
+
     _animationController.forward().then((_) {
       _animationController.reverse().then((_) {
         setState(() {
@@ -52,7 +53,7 @@ class _CopyButtonState extends State<CopyButton> with SingleTickerProviderStateM
         });
       });
     });
-    
+
     widget.chatController.copyResponseToClipboard(widget.message);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -71,10 +72,10 @@ class _CopyButtonState extends State<CopyButton> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     // Determina o tamanho mínimo do botão com base no tamanho da tela
     final bool isSmallScreen = screenWidth < 360;
-    
+
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(20),
@@ -91,8 +92,9 @@ class _CopyButtonState extends State<CopyButton> with SingleTickerProviderStateM
             child: LayoutBuilder(
               builder: (context, constraints) {
                 // Ajusta o limite de espaço com base no tamanho da tela
-                final hasEnoughSpace = !isSmallScreen && constraints.maxWidth > 80;
-                
+                final hasEnoughSpace =
+                    !isSmallScreen && constraints.maxWidth > 80;
+
                 return AnimatedSize(
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeInOut,
@@ -105,11 +107,13 @@ class _CopyButtonState extends State<CopyButton> with SingleTickerProviderStateM
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              widget.isChristian ? Icons.content_copy : Icons.content_copy_rounded,
+                              widget.isChristian
+                                  ? Icons.content_copy
+                                  : Icons.content_copy_rounded,
                               size: isSmallScreen ? 18 : 20,
-                              color: _isPressed 
-                                ? theme.colorScheme.primary.withOpacity(0.7)
-                                : theme.colorScheme.primary,
+                              color: _isPressed
+                                  ? theme.colorScheme.primary.withOpacity(0.7)
+                                  : theme.colorScheme.primary,
                             ),
                             if (widget.isChristian && hasEnoughSpace) ...[
                               const SizedBox(width: 4),
@@ -118,9 +122,10 @@ class _CopyButtonState extends State<CopyButton> with SingleTickerProviderStateM
                                   widget.copyButtonLabel,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: _isPressed 
-                                      ? theme.colorScheme.primary.withOpacity(0.7)
-                                      : theme.colorScheme.primary,
+                                    color: _isPressed
+                                        ? theme.colorScheme.primary
+                                            .withOpacity(0.7)
+                                        : theme.colorScheme.primary,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   maxLines: 1,
@@ -140,4 +145,4 @@ class _CopyButtonState extends State<CopyButton> with SingleTickerProviderStateM
       ),
     );
   }
-} 
+}

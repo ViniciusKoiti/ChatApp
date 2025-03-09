@@ -5,7 +5,7 @@ import 'package:jesusapp/components/cross_pattern_painter.dart';
 import 'package:provider/provider.dart';
 
 class MessageList extends StatelessWidget {
-  final List<Map<String, String>> messages;
+  final List<Map<String, dynamic>> messages;
 
   const MessageList({
     super.key,
@@ -16,25 +16,25 @@ class MessageList extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final appType = themeProvider.getConfig<String>('appType', defaultValue: '');
+    final appType =
+        themeProvider.getConfig<String>('appType', defaultValue: '');
     final isChristian = appType == 'christian';
-    
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: isChristian 
+          colors: isChristian
               ? [
-                  theme.colorScheme.background,
-                  theme.colorScheme.background.withOpacity(0.95),
-                  theme.colorScheme.background.withOpacity(0.9),
+                  theme.colorScheme.surface,
+                  theme.colorScheme.surface.withOpacity(0.95),
+                  theme.colorScheme.surface.withOpacity(0.9),
                 ]
               : [
-                  theme.colorScheme.background,
-                  theme.colorScheme.background.withBlue(
-                    (theme.colorScheme.background.blue + 10).clamp(0, 255)
-                  ),
+                  theme.colorScheme.surface,
+                  theme.colorScheme.surface.withBlue(
+                      (theme.colorScheme.surface.blue + 10).clamp(0, 255)),
                 ],
         ),
       ),
@@ -44,7 +44,8 @@ class MessageList extends StatelessWidget {
               children: [
                 if (isChristian) _buildBackgroundPattern(context),
                 ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
                   reverse: true,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
@@ -56,7 +57,7 @@ class MessageList extends StatelessWidget {
             ),
     );
   }
-  
+
   Widget _buildBackgroundPattern(BuildContext context) {
     final theme = Theme.of(context);
     return CustomPaint(
@@ -68,20 +69,17 @@ class MessageList extends StatelessWidget {
       child: Container(),
     );
   }
-  
+
   Widget _buildEmptyState(BuildContext context, ThemeProvider themeProvider) {
     final theme = Theme.of(context);
-    final emptyMessage = themeProvider.getConfig<String>(
-      'emptyStateMessage',
-      defaultValue: 'Envie uma mensagem para começar'
-    );
-    final welcomeMessage = themeProvider.getConfig<String>(
-      'welcomeMessage',
-      defaultValue: ''
-    );
-    final appType = themeProvider.getConfig<String>('appType', defaultValue: '');
+    final emptyMessage = themeProvider.getConfig<String>('emptyStateMessage',
+        defaultValue: 'Envie uma mensagem para começar');
+    final welcomeMessage =
+        themeProvider.getConfig<String>('welcomeMessage', defaultValue: '');
+    final appType =
+        themeProvider.getConfig<String>('appType', defaultValue: '');
     final isChristian = appType == 'christian';
-    
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -122,7 +120,7 @@ class MessageList extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: theme.colorScheme.onBackground.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
               ),
             ),
           ),
@@ -134,16 +132,16 @@ class MessageList extends StatelessWidget {
       ),
     );
   }
-  
-  Widget _buildBiblicalThemes(BuildContext context, ThemeProvider themeProvider) {
+
+  Widget _buildBiblicalThemes(
+      BuildContext context, ThemeProvider themeProvider) {
     final theme = Theme.of(context);
     final biblicalThemes = themeProvider.getConfig<List<dynamic>>(
-      'biblicalThemes', 
-      defaultValue: <String>[]
-    ).cast<String>();
-    
+        'biblicalThemes',
+        defaultValue: <String>[]).cast<String>();
+
     if (biblicalThemes.isEmpty) return const SizedBox.shrink();
-    
+
     return Column(
       children: [
         Text(
@@ -151,7 +149,7 @@ class MessageList extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onBackground.withOpacity(0.7),
+            color: theme.colorScheme.onSurface.withOpacity(0.7),
           ),
         ),
         const SizedBox(height: 8),
@@ -159,21 +157,27 @@ class MessageList extends StatelessWidget {
           alignment: WrapAlignment.center,
           spacing: 8,
           runSpacing: 8,
-          children: biblicalThemes.map((theme) => Chip(
-            backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-            side: BorderSide(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-            ),
-            label: Text(
-              theme,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontSize: 12,
-              ),
-            ),
-          )).toList(),
+          children: biblicalThemes
+              .map((theme) => Chip(
+                    backgroundColor:
+                        Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    side: BorderSide(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.3),
+                    ),
+                    label: Text(
+                      theme,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ))
+              .toList(),
         ),
       ],
     );
   }
-} 
+}
