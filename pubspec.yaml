@@ -38,6 +38,7 @@ dependencies:
   share_plus: ^10.1.4
   shared_preferences: ^2.2.2
   path_provider: ^2.1.0
+  http: ^1.1.0
   dio: ^5.4.0
 
 dev_dependencies:

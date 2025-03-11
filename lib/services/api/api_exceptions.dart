@@ -25,7 +25,6 @@ class ApiException implements Exception {
   }
 }
 
-/// Exceção para erros de conexão
 class ConnectionException extends ApiException {
   ConnectionException({
     String message = 'Não foi possível conectar ao servidor',
@@ -33,7 +32,6 @@ class ConnectionException extends ApiException {
   }) : super(message, endpoint: endpoint);
 }
 
-/// Exceção para timeout de conexão
 class TimeoutException extends ApiException {
   TimeoutException({
     String message = 'A conexão expirou. Tente novamente mais tarde',
@@ -41,7 +39,6 @@ class TimeoutException extends ApiException {
   }) : super(message, endpoint: endpoint);
 }
 
-/// Exceção para erros de servidor (5xx)
 class ServerException extends ApiException {
   ServerException({
     String message = 'Erro no servidor. Tente novamente mais tarde',
@@ -51,7 +48,6 @@ class ServerException extends ApiException {
   }) : super(message, statusCode: statusCode, data: data, endpoint: endpoint);
 }
 
-/// Exceção para erros de cliente (4xx)
 class ClientException extends ApiException {
   ClientException({
     String message = 'Erro na requisição',
@@ -61,7 +57,6 @@ class ClientException extends ApiException {
   }) : super(message, statusCode: statusCode, data: data, endpoint: endpoint);
 }
 
-/// Exceção para erros de autenticação
 class AuthException extends ClientException {
   AuthException({
     String message = 'Erro de autenticação',

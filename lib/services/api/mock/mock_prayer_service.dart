@@ -7,7 +7,7 @@ class Prayer {
   Prayer({required this.title, required this.text});
 }
 
-class PrayerService {
+class MockPrayerService {
   static final List<Prayer> _prayers = [
     Prayer(
       title: 'Oração pela Paz',

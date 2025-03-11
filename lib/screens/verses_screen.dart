@@ -1,18 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:jesusapp/components/verse_card.dart';
-import 'package:jesusapp/services/verse_service.dart';
+import 'package:jesusapp/services/api/interfaces/i_verse_service.dart';
+import 'package:jesusapp/services/api/mock/mock_verse_service.dart';
 import 'package:jesusapp/theme/theme_provider.dart';
 import 'package:provider/provider.dart';
 
-class VersesScreen extends StatelessWidget {
+class VersesScreen extends StatefulWidget {
   const VersesScreen({super.key});
+
+  @override
+  State<VersesScreen> createState() => _VersesScreenState();
+}
+
+class _VersesScreenState extends State<VersesScreen> {
+  List<Verse> verses = [];
+  bool isLoading = true;
+  String errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVerses();
+  }
+
+  Future<void> _loadVerses() async {
+    try {
+      final verseService = Provider.of<IVerseService>(context, listen: false);
+      final loadedVerses = await verseService.getAllVerses();
+
+      setState(() {
+        verses = loadedVerses;
+        isLoading = false;
+        errorMessage = '';
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMessage = 'Erro ao carregar versículos: $e';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final theme = Theme.of(context);
-    final verses = VerseService.getAllVerses();
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -32,7 +65,57 @@ class VersesScreen extends StatelessWidget {
         backgroundColor: theme.colorScheme.surface,
         foregroundColor: theme.colorScheme.onSurface,
       ),
-      body: ListView.builder(
+      body: _buildBody(context),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showRandomVerse(context),
+        backgroundColor: theme.colorScheme.primary,
+        tooltip: 'Versículo Aleatório',
+        child: const Icon(Icons.auto_awesome),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    if (isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Carregando versículos...'),
+          ],
+        ),
+      );
+    }
+
+    if (errorMessage.isNotEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(errorMessage),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _loadVerses,
+              child: const Text('Tentar novamente'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (verses.isEmpty) {
+      return const Center(
+        child: Text('Nenhum versículo encontrado'),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadVerses,
+      child: ListView.builder(
         padding: const EdgeInsets.all(16.0),
         itemCount: verses.length,
         itemBuilder: (context, index) {
@@ -46,19 +129,41 @@ class VersesScreen extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Mostrar um versículo aleatório
-          final randomVerse = VerseService.getRandomVerse();
-          _showVerseDialog(context, randomVerse);
-        },
-        backgroundColor: theme.colorScheme.primary,
-        child: const Icon(Icons.auto_awesome),
-        tooltip: 'Versículo Aleatório',
-      ),
     );
   }
-  
+
+  Future<void> _showRandomVerse(BuildContext context) async {
+    final verseService = Provider.of<IVerseService>(context, listen: false);
+
+    // Mostrar indicador de carregamento
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final randomVerse = await verseService.getRandomVerse();
+
+      if (context.mounted) Navigator.of(context).pop();
+
+      if (context.mounted) _showVerseDialog(context, randomVerse);
+    } catch (e) {
+      if (context.mounted) Navigator.of(context).pop();
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao buscar versículo aleatório: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _showVerseDialog(BuildContext context, Verse verse) {
     showDialog(
       context: context,
@@ -104,8 +209,15 @@ class VersesScreen extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Fechar'),
           ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showRandomVerse(context);
+            },
+            child: const Text('Próximo'),
+          ),
         ],
       ),
     );
   }
-} 
+}

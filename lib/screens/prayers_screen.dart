@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:jesusapp/components/prayer_card.dart';
-import 'package:jesusapp/services/prayer_service.dart';
+import 'package:jesusapp/services/api/mock/mock_prayer_service.dart';
 import 'package:jesusapp/theme/theme_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -11,8 +11,8 @@ class PrayersScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final theme = Theme.of(context);
-    final prayers = PrayerService.getAllPrayers();
-    
+    final prayers = MockPrayerService.getAllPrayers();
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -49,16 +49,16 @@ class PrayersScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // Mostrar uma oração aleatória
-          final randomPrayer = PrayerService.getRandomPrayer();
+          final randomPrayer = MockPrayerService.getRandomPrayer();
           _showPrayerDialog(context, randomPrayer);
         },
         backgroundColor: theme.colorScheme.primary,
-        child: const Icon(Icons.auto_awesome),
         tooltip: 'Oração Aleatória',
+        child: const Icon(Icons.auto_awesome),
       ),
     );
   }
-  
+
   void _showPrayerDialog(BuildContext context, Prayer prayer) {
     showDialog(
       context: context,
@@ -91,4 +91,4 @@ class PrayersScreen extends StatelessWidget {
       ),
     );
   }
-} 
+}

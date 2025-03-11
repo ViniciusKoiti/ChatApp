@@ -1,173 +1,118 @@
 import 'package:flutter/material.dart';
 import 'package:jesusapp/chat/chatController.dart';
 import 'package:provider/provider.dart';
-import 'package:jesusapp/components/message_list.dart';
-import 'package:jesusapp/components/message_input.dart';
 import 'package:jesusapp/theme/theme_provider.dart';
-import 'package:jesusapp/theme/theme_selector_screen.dart';
-import 'package:jesusapp/components/verse_card.dart';
-import 'package:jesusapp/services/verse_service.dart';
-import 'package:jesusapp/screens/prayers_screen.dart';
-import 'package:jesusapp/screens/verses_screen.dart';
+import 'package:jesusapp/services/api/interfaces/i_api_service.dart';
+import 'package:jesusapp/services/api/interfaces/i_verse_service.dart';
 
 class ChatScreen extends StatelessWidget {
-  const ChatScreen({super.key});
+  const ChatScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final chatController = Provider.of<ChatController>(context);
+    // Obter as dependências necessárias
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final theme = Theme.of(context);
-    final appName = themeProvider.getConfig<String>('appName',
-        defaultValue: 'Assistente Virtual');
-    final appType =
-        themeProvider.getConfig<String>('appType', defaultValue: '');
-    final isChristian = appType == 'christian';
+    final apiService = Provider.of<IApiService>(context);
 
-    // Obter um versículo aleatório
-    final verse = VerseService.getRandomVerse();
+    final verseService = Provider.of<IVerseService>(context, listen: false);
+
+    return ChangeNotifierProvider(
+      create: (context) => ChatController(
+        apiService: apiService,
+        themeProvider: themeProvider,
+        context: context,
+      ),
+      child: _ChatScreenContent(),
+    );
+  }
+}
+
+class _ChatScreenContent extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final controller = Provider.of<ChatController>(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isChristian) ...[
-              Icon(
-                Icons.wb_sunny_outlined,
-                size: 20,
-                color: theme.colorScheme.onSurface,
-              ),
-              const SizedBox(width: 8),
-            ],
-            Text(appName),
-          ],
-        ),
-        centerTitle: true,
-        elevation: 2,
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.onSurface,
-        actions: [
-          if (isChristian) ...[
-            IconButton(
-              icon: const Icon(Icons.menu_book_outlined),
-              tooltip: 'Versículos Bíblicos',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const VersesScreen(),
-                  ),
-                );
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.favorite_outline),
-              tooltip: 'Orações Diárias',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PrayersScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
-          if (!isChristian) ...[
-            IconButton(
-              icon: const Icon(Icons.color_lens_outlined),
-              tooltip: 'Mudar tema',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ThemeSelectorScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
-          IconButton(
-            icon: Icon(isChristian ? Icons.info_outline : Icons.info),
-            tooltip: 'Sobre o aplicativo',
-            onPressed: () {
-              _showAboutDialog(context, themeProvider);
-            },
-          ),
-        ],
+        title: const Text('Assistente Cristão'),
       ),
       body: Column(
         children: [
-          // Mostrar o cartão de versículo apenas se for o tema cristão
-          if (isChristian) ...[
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: VerseCard(
-                verse: verse.text,
-                reference: verse.reference,
-              ),
-            ),
-          ],
           Expanded(
-            child: MessageList(messages: chatController.messages),
+            child: controller.isLoading && controller.messages.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    itemCount: controller.messages.length,
+                    itemBuilder: (context, index) {
+                      final message = controller.messages[index];
+                      return _MessageWidget(
+                        message: message,
+                        controller: controller,
+                      );
+                    },
+                  ),
           ),
-          MessageInput(
-            onSendMessage: chatController.sendMessage,
-          ),
+          // Outras partes da interface (entrada de texto, botões, etc.)
         ],
       ),
     );
   }
+}
 
-  void _showAboutDialog(BuildContext context, ThemeProvider themeProvider) {
-    final appName = themeProvider.getConfig<String>('appName',
-        defaultValue: 'Assistente Virtual');
-    final appDescription = themeProvider.getConfig<String>('appDescription',
-        defaultValue: 'Um assistente virtual para conversas');
-    final appType =
-        themeProvider.getConfig<String>('appType', defaultValue: '');
-    final isChristian = appType == 'christian';
+class _MessageWidget extends StatelessWidget {
+  final Map<String, dynamic> message;
+  final ChatController controller;
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            if (isChristian) ...[
-              Icon(
-                Icons.wb_sunny_outlined,
-                size: 24,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-            ],
-            Text(appName),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(appDescription),
-            const SizedBox(height: 16),
-            if (isChristian) ...[
-              const Text(
-                '"Pois onde dois ou três estiverem reunidos em meu nome, aí estou eu no meio deles." - Mateus 18:20',
+  const _MessageWidget({
+    required this.message,
+    required this.controller,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isUser = message['role'] == 'user';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      child: Align(
+        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          padding: const EdgeInsets.all(12.0),
+          decoration: BoxDecoration(
+            color: isUser ? Theme.of(context).primaryColor : Colors.grey[200],
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                message['text'] ?? '',
                 style: TextStyle(
-                  fontStyle: FontStyle.italic,
-                  fontSize: 13,
+                  color: isUser ? Colors.white : Colors.black,
                 ),
               ),
+              if (!isUser) ...[
+                const SizedBox(height: 8.0),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.copy, size: 18),
+                      onPressed: () =>
+                          controller.copyResponseToClipboard(message),
+                      tooltip: 'Copiar',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.share, size: 18),
+                      onPressed: () => controller.shareResponse(message),
+                      tooltip: 'Compartilhar',
+                    ),
+                  ],
+                ),
+              ],
             ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fechar'),
           ),
-        ],
+        ),
       ),
     );
   }

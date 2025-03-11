@@ -44,15 +44,13 @@ class ApiConfig {
         'X-App-Version': '1.0.0',
       };
 
-  /// Endpoints da API
   static const Map<String, String> endpoints = {
     'chat': '/chat/message',
     'flavors': '/chat/flavors',
-    'health': '/chat/health',
+    'health': '/health',
     'verses': '/verses/random',
     'prayers': '/prayers/daily',
   };
 
-  /// Tempo de expiração do cache (em minutos)
   static const int cacheExpiration = 60;
 }

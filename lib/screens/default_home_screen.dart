@@ -19,11 +19,11 @@ class DefaultHomeScreen extends FlavorHomeScreen {
   @override
   List<MenuOption> getMenuOptions(BuildContext context) {
     return [
-      MenuOption(
+      const MenuOption(
         icon: Icons.chat_bubble_outline,
         title: 'Conversar com o Assistente',
         description: 'Tire suas dúvidas e receba ajuda personalizada',
-        screen: const ChatScreen(),
+        screen: ChatScreen(),
       ),
     ];
   }

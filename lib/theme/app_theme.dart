@@ -8,13 +8,10 @@ class AppTheme {
   /// Nome amigável do tema
   final String name;
   
-  /// Esquema de cores do tema
   final ColorScheme colorScheme;
   
-  /// Configurações de texto do tema
   final TextTheme? textTheme;
   
-  /// Configurações adicionais específicas do tema
   final Map<String, dynamic> extraConfigs;
 
   const AppTheme({
@@ -39,7 +36,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: colorScheme.surfaceVariant.withOpacity(0.5),
+        fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.5),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(24),
           borderSide: BorderSide(

@@ -4,10 +4,14 @@ import 'package:jesusapp/theme/theme_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:jesusapp/service/mockAiService.dart';
 import 'package:jesusapp/services/api/interfaces/i_api_service.dart';
+import 'package:jesusapp/services/api/interfaces/i_verse_service.dart';
+import 'package:provider/provider.dart';
 
 class ChatController extends ChangeNotifier {
   final IApiService apiService;
   final ThemeProvider themeProvider;
+  late final IVerseService verseService;
+  final BuildContext context;
 
   List<Map<String, dynamic>> _messages = [];
   bool _isLoading = false;
@@ -15,7 +19,10 @@ class ChatController extends ChangeNotifier {
   ChatController({
     required this.apiService,
     required this.themeProvider,
+    required this.context,
   }) {
+    // Obter o verseService do Provider
+    verseService = Provider.of<IVerseService>(context, listen: false);
     _initializeMessages();
   }
 
@@ -25,42 +32,51 @@ class ChatController extends ChangeNotifier {
   Future<void> _initializeMessages() async {
     if (_isLoading) return;
     _isLoading = true;
+    notifyListeners();
 
-    // Verificar se estamos no tema cristão
-    final appType =
-        themeProvider.getConfig<String>('appType', defaultValue: '') ?? '';
-    final isChristian = appType == 'christian';
+    try {
+      final appType =
+          themeProvider.getConfig<String>('appType', defaultValue: '') ?? '';
+      final isChristian = appType == 'christian';
 
-    if (isChristian) {
-      // Adicionar mensagem de boas-vindas para o tema cristão
-      _messages.add({
-        'role': 'ai',
-        'text':
-            'Bem-vindo ao Assistente Cristão! Estou aqui para ajudar em sua jornada de fé. Você pode me perguntar sobre temas bíblicos, reflexões espirituais ou buscar palavras de encorajamento. Como posso auxiliar em sua caminhada cristã hoje?'
-      });
+      if (isChristian) {
+        _messages.add({
+          'role': 'ai',
+          'text':
+              'Bem-vindo ao Assistente Cristão! Estou aqui para ajudar em sua jornada de fé. Você pode me perguntar sobre temas bíblicos, reflexões espirituais ou buscar palavras de encorajamento. Como posso auxiliar em sua caminhada cristã hoje?'
+        });
 
-      // Adicionar sugestão de versículo do dia
-      final verseOfDay = _getRandomVerse();
-      await Future.delayed(const Duration(milliseconds: 500));
-      _messages
-          .add({'role': 'ai', 'text': '📖 *Versículo do dia:* $verseOfDay'});
-
+        try {
+          // Usar o verseService para obter um versículo aleatório
+          final verse = await verseService.getRandomVerse();
+          _messages.add({
+            'role': 'ai',
+            'text':
+                '📖 *Versículo do dia:* "${verse.text}" - ${verse.reference}'
+          });
+        } catch (e) {
+          debugPrint('Erro ao obter versículo aleatório: $e');
+          // Fallback para versículo estático em caso de erro
+          final fallbackVerse = _getFallbackVerse();
+          _messages.add(
+              {'role': 'ai', 'text': '📖 *Versículo do dia:* $fallbackVerse'});
+        }
+      }
+    } catch (e) {
+      debugPrint('Erro ao inicializar mensagens: $e');
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
 
-  String _getRandomVerse() {
+  // Método de fallback em caso de falha na API
+  String _getFallbackVerse() {
     final verses = [
       '"Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna." - João 3:16',
       '"O Senhor é o meu pastor, nada me faltará." - Salmos 23:1',
       '"Tudo posso naquele que me fortalece." - Filipenses 4:13',
       '"E conhecereis a verdade, e a verdade vos libertará." - João 8:32',
-      '"Não temas, porque eu sou contigo; não te assombres, porque eu sou teu Deus; eu te fortaleço, e te ajudo, e te sustento com a destra da minha justiça." - Isaías 41:10',
-      '"Confie no Senhor de todo o seu coração e não se apoie em seu próprio entendimento." - Provérbios 3:5',
-      '"Busquem, pois, em primeiro lugar o Reino de Deus e a sua justiça, e todas essas coisas lhes serão acrescentadas." - Mateus 6:33',
-      '"Eu sou o caminho, a verdade e a vida. Ninguém vem ao Pai, a não ser por mim." - João 14:6',
-      '"Porque sou eu que conheço os planos que tenho para vocês, diz o Senhor, planos de fazê-los prosperar e não de causar dano, planos de dar a vocês esperança e um futuro." - Jeremias 29:11',
-      '"Alegrem-se sempre no Senhor. Novamente direi: alegrem-se!" - Filipenses 4:4'
     ];
 
     verses.shuffle();
@@ -81,15 +97,46 @@ class ChatController extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
+      // Verificar se a mensagem é uma busca por versículo
+      if (message.toLowerCase().contains('versículo') ||
+          message.toLowerCase().contains('verso') ||
+          message.toLowerCase().contains('passagem')) {
+        try {
+          // Tentar encontrar versículos com base na consulta
+          final verses = await verseService.searchVerses(message);
+
+          if (verses.isNotEmpty) {
+            // Formatar a resposta com os versículos encontrados
+            String response = 'Encontrei estes versículos para você:\n\n';
+
+            for (var verse in verses.take(3)) {
+              // Limitar a 3 resultados
+              response += '📖 "${verse.text}" - ${verse.reference}\n\n';
+            }
+
+            _messages.add({
+              'role': 'ai',
+              'text': response.trim(),
+            });
+
+            _isLoading = false;
+            notifyListeners();
+            return;
+          }
+        } catch (e) {
+          debugPrint('Erro ao buscar versículos: $e');
+          // Continuar com a resposta normal do AI se a busca falhar
+        }
+      }
+
       // Obter o flavor atual
       final flavor =
           themeProvider.getConfig<String>('appType', defaultValue: '');
 
-      // Usar o método sendMessage da interface IApiService
       final response = await apiService.sendMessage(
         message: message,
         flavor: flavor,
-        context: null, // Ou adicionar contexto se necessário
+        context: null,
       );
 
       _messages.add({

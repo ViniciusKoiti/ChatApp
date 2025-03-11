@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:jesusapp/theme/app_theme.dart';
 import 'package:jesusapp/theme/theme_provider.dart';
 import 'package:provider/provider.dart';
 
