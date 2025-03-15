@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:jesusapp/service/authMockService.dart';
+import 'package:jesusapp/services/mock/authMockService.dart';
 import 'package:jesusapp/theme/theme_provider.dart';
 import 'package:jesusapp/components/cross_pattern_painter.dart';
 

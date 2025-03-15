@@ -13,6 +13,7 @@ class ApiConfig {
 
   /// Obtém a URL base apropriada com base no ambiente atual
   static String get baseUrl {
+    return testBaseUrl;
     if (kReleaseMode) {
       return const String.fromEnvironment(
         'API_BASE_URL',

@@ -3,7 +3,7 @@ import 'package:jesusapp/chat/chatScreen.dart';
 import 'package:jesusapp/theme/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:jesusapp/screens/christian_home_screen.dart';
-import 'package:jesusapp/service/authMockService.dart';
+import 'package:jesusapp/services/mock/authMockService.dart';
 import 'package:jesusapp/theme/app_flavor.dart';
 
 class ChatApp extends StatelessWidget {

@@ -30,7 +30,6 @@ class _ChristianHomeScreenState extends State<ChristianHomeScreen> {
   Future<void> _loadDailyContent() async {
     print('Carregando versículo aleatório...');
     final verseService = Provider.of<IVerseService>(context, listen: false);
-    final prayerService = MockPrayerService();
     try {
       final verse = await verseService.getRandomVerse();
       print('Versículo carregado: ${verse.text}');

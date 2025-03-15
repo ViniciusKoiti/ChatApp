@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:jesusapp/theme/theme_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:jesusapp/service/mockAiService.dart';
+import 'package:jesusapp/services/mock/mockAiService.dart';
 import 'package:jesusapp/services/api/interfaces/i_api_service.dart';
 import 'package:jesusapp/services/api/interfaces/i_verse_service.dart';
 import 'package:provider/provider.dart';
@@ -10,8 +10,7 @@ import 'package:provider/provider.dart';
 class ChatController extends ChangeNotifier {
   final IApiService apiService;
   final ThemeProvider themeProvider;
-  late final IVerseService verseService;
-  final BuildContext context;
+  final IVerseService verseService;
 
   List<Map<String, dynamic>> _messages = [];
   bool _isLoading = false;
@@ -19,10 +18,8 @@ class ChatController extends ChangeNotifier {
   ChatController({
     required this.apiService,
     required this.themeProvider,
-    required this.context,
+    required this.verseService,
   }) {
-    // Obter o verseService do Provider
-    verseService = Provider.of<IVerseService>(context, listen: false);
     _initializeMessages();
   }
 
@@ -47,7 +44,6 @@ class ChatController extends ChangeNotifier {
         });
 
         try {
-          // Usar o verseService para obter um versículo aleatório
           final verse = await verseService.getRandomVerse();
           _messages.add({
             'role': 'ai',
@@ -56,7 +52,6 @@ class ChatController extends ChangeNotifier {
           });
         } catch (e) {
           debugPrint('Erro ao obter versículo aleatório: $e');
-          // Fallback para versículo estático em caso de erro
           final fallbackVerse = _getFallbackVerse();
           _messages.add(
               {'role': 'ai', 'text': '📖 *Versículo do dia:* $fallbackVerse'});
@@ -70,7 +65,6 @@ class ChatController extends ChangeNotifier {
     }
   }
 
-  // Método de fallback em caso de falha na API
   String _getFallbackVerse() {
     final verses = [
       '"Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna." - João 3:16',
@@ -93,76 +87,132 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> _fetchAiResponse(String message) async {
-    try {
-      _isLoading = true;
-      notifyListeners();
+  try {
+    _isLoading = true;
+    notifyListeners();
 
-      // Verificar se a mensagem é uma busca por versículo
-      if (message.toLowerCase().contains('versículo') ||
-          message.toLowerCase().contains('verso') ||
-          message.toLowerCase().contains('passagem')) {
-        try {
-          // Tentar encontrar versículos com base na consulta
-          final verses = await verseService.searchVerses(message);
+    // Verificar se a mensagem é uma busca por versículo
+    if (message.toLowerCase().contains('versículo') ||
+        message.toLowerCase().contains('verso') ||
+        message.toLowerCase().contains('passagem')) {
+      try {
+        // Tentar encontrar versículos com base na consulta
+        final verses = await verseService.searchVerses(message);
 
-          if (verses.isNotEmpty) {
-            // Formatar a resposta com os versículos encontrados
-            String response = 'Encontrei estes versículos para você:\n\n';
+        if (verses.isNotEmpty) {
+          // Formatar a resposta com os versículos encontrados
+          String response = 'Encontrei estes versículos para você:\n\n';
 
-            for (var verse in verses.take(3)) {
-              // Limitar a 3 resultados
-              response += '📖 "${verse.text}" - ${verse.reference}\n\n';
-            }
-
-            _messages.add({
-              'role': 'ai',
-              'text': response.trim(),
-            });
-
-            _isLoading = false;
-            notifyListeners();
-            return;
+          for (var verse in verses.take(3)) {
+            // Limitar a 3 resultados
+            response += '📖 "${verse.text}" - ${verse.reference}\n\n';
           }
-        } catch (e) {
-          debugPrint('Erro ao buscar versículos: $e');
-          // Continuar com a resposta normal do AI se a busca falhar
+
+          _messages.add({
+            'role': 'ai',
+            'text': response.trim(),
+          });
+
+          _isLoading = false;
+          notifyListeners();
+          return;
         }
+      } catch (e) {
+        debugPrint('Erro ao buscar versículos: $e');
+        // Continuar com a resposta normal do AI se a busca falhar
       }
+    }
 
-      // Obter o flavor atual
-      final flavor =
-          themeProvider.getConfig<String>('appType', defaultValue: '');
-
-      final response = await apiService.sendMessage(
+    // Obter o flavor atual
+    final flavor =
+        themeProvider.getConfig<String>('appType', defaultValue: '');
+    debugPrint('sendMessage: $message, $flavor');
+    
+    // Adicionar uma mensagem vazia do AI que será atualizada com o stream
+    final messageIndex = _messages.length;
+    _messages.add({
+      'role': 'ai',
+      'text': '',
+      'references': [],
+      'suggestions': [],
+    });
+    notifyListeners();
+    
+    // Iniciar o stream de resposta
+    String fullResponse = '';
+    
+    try {
+      debugPrint('Iniciando stream de resposta...');
+      final stream = apiService.sendMessageStream(
         message: message,
         flavor: flavor,
         context: null,
       );
 
+      
+      
+      await for (final chunk in stream) {
+        debugPrint('Chunk recebido: ${chunk.length} caracteres');
+        print(chunk);
+        // Adicionar o novo chunk à resposta completa
+        fullResponse += chunk;
+        
+        // CRÍTICO: Criar um NOVO objeto Map em vez de modificar o existente
+        // Isso garante que o Flutter detecte a mudança e reconstrua o widget
+        _messages[messageIndex] = {
+          'role': 'ai',
+          'text': fullResponse,
+          'references': _messages[messageIndex]['references'] ?? [],
+          'suggestions': _messages[messageIndex]['suggestions'] ?? [],
+        };
+        
+        // Notificar IMEDIATAMENTE após cada chunk para atualização da UI
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Erro no stream: $e');
+      // Em caso de erro no stream, tenta o método não-streaming como fallback
+      try {
+        final response = await apiService.sendMessage(
+          message: message,
+          flavor: flavor,
+          context: null,
+        );
+        
+        _messages[messageIndex] = {
+          'role': 'ai',
+          'text': response.response,
+          'references': response.references,
+          'suggestions': response.suggestions,
+        };
+      } catch (fallbackError) {
+        debugPrint('Erro no fallback: $fallbackError');
+        _messages[messageIndex] = {
+          'role': 'ai',
+          'text': 'Desculpe, houve um erro ao processar sua mensagem. Por favor, tente novamente.',
+          'references': [],
+          'suggestions': [],
+        };
+      }
+    }
+  } catch (e) {
+    // Fallback para serviço legado ou tratamento de erro
+    if (apiService is MockAiService) {
+      final legacyResponse =
+          await (apiService as MockAiService).sendMessageLegacy(message);
+      _messages.add({'role': 'ai', 'text': legacyResponse});
+    } else {
       _messages.add({
         'role': 'ai',
-        'text': response.response,
-        'references': response.references,
-        'suggestions': response.suggestions,
+        'text':
+            'Desculpe, houve um erro ao processar sua mensagem. Por favor, tente novamente.'
       });
-    } catch (e) {
-      // Fallback para serviço legado ou tratamento de erro
-      if (apiService is MockAiService) {
-        final legacyResponse =
-            await (apiService as MockAiService).sendMessageLegacy(message);
-        _messages.add({'role': 'ai', 'text': legacyResponse});
-      } else {
-        _messages.add({
-          'role': 'ai',
-          'text':
-              'Desculpe, houve um erro ao processar sua mensagem. Por favor, tente novamente.'
-        });
-      }
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
+  } finally {
+    _isLoading = false;
+    notifyListeners();
   }
+}
 
   Future<void> shareResponse(Map<String, dynamic> message) async {
     if (message['text'] == null || message['text'].toString().isEmpty) return;

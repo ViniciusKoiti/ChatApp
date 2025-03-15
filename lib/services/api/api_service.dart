@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:dio/dio.dart';
+import 'dart:typed_data';
 import 'package:jesusapp/models/api/chat_response.dart';
 import 'package:jesusapp/models/api/prayer_response.dart';
 import 'package:jesusapp/models/api/verse_response.dart';
@@ -22,8 +24,8 @@ class ApiService extends BaseService implements IApiService {
     final dio = Dio(
       BaseOptions(
         baseUrl: ApiConfig.baseUrl,
-        connectTimeout: Duration(milliseconds: ApiConfig.connectTimeout),
-        receiveTimeout: Duration(milliseconds: ApiConfig.receiveTimeout),
+        connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+        receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
         headers: {
           ...ApiConfig.defaultHeaders,
           'X-App-Flavor': flavor,
@@ -52,12 +54,67 @@ class ApiService extends BaseService implements IApiService {
     return dio;
   }
 
+  
+
+Stream<String> sendMessageStream({
+  required String message,
+  required String flavor,
+  MessageContext? context,
+}) async* {
+  try {
+    logDebug('Iniciando streaming de resposta para: $message');
+
+    final dio = _dio; // Reutiliza a instância existente
+
+    final response = await dio.post(
+      ApiConfig.endpoints['chat']!,
+      data: {
+        'message': message,
+        'flavor': flavor,
+        'context': context?.toJson(),
+      },
+      options: Options(
+        responseType: ResponseType.stream, // Configura resposta como stream
+        contentType: 'application/json',
+        headers: {'Accept': 'text/plain'},
+      ),
+    );
+
+    // Acessando o Stream da resposta
+    final Stream<Uint8List> responseStream = response.data.stream;
+
+    // Lendo os chunks um por um
+    await for (Uint8List chunk in responseStream) {
+      logDebug('Recebido chunk: $chunk'); // Log do chunk bruto
+
+      try {
+        final String text = utf8.decode(chunk); // Decodifica chunk para texto
+        logDebug('Chunk decodificado: $text'); // Log do texto recebido
+        yield text; // Emite cada pedaço para quem consumir o stream
+      } catch (e) {
+        logError('Erro ao decodificar chunk: $e', e);
+      }
+    }
+
+  } on DioException catch (e) {
+    logError('Erro Dio no streaming: ${e.message}', e);
+    throw _handleDioError(e, 'chat');
+  } catch (e) {
+    logError('Erro geral no streaming: $e', e);
+    throw ApiException(
+      'Erro ao enviar mensagem: $e', 
+      endpoint: 'chat',
+    );
+  }
+}
+
   @override
   Future<ChatResponse> sendMessage({
     required String message,
     required String flavor,
     MessageContext? context,
   }) async {
+    print('sendMessage: $message, $flavor, $context');
     try {
       final response = await _dio.post(
         ApiConfig.endpoints['chat']!,
@@ -68,7 +125,7 @@ class ApiService extends BaseService implements IApiService {
         },
       );
 
-      return ChatResponse.fromJson(response.data['data']);
+      return ChatResponse.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleDioError(e, 'chat');
     } catch (e) {
@@ -137,7 +194,16 @@ class ApiService extends BaseService implements IApiService {
   Future<Map<String, dynamic>> checkApiHealth() async {
     try {
       final response = await _dio.get(ApiConfig.endpoints['health']!);
-      return response.data['data'] as Map<String, dynamic>;
+      print(response.data);
+
+      if (response.data is String) {
+        return jsonDecode(response.data) as Map<String, dynamic>;
+      } else if (response.data is Map) {
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw ApiException('Formato de resposta inesperado',
+            endpoint: 'health');
+      }
     } on DioException catch (e) {
       throw _handleDioError(e, 'health');
     } catch (e) {

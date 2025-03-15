@@ -11,12 +11,10 @@ class AuthMockService with ChangeNotifier {
   bool get isAuthenticated => _isAuthenticated;
   String? get currentAppType => _currentAppType;
   
-  // Construtor que verifica se o usuário já está logado
   AuthMockService() {
     _checkAuthentication();
   }
   
-  // Verifica se o usuário já está autenticado pelo SharedPreferences
   Future<void> _checkAuthentication() async {
     final prefs = await SharedPreferences.getInstance();
     _isAuthenticated = prefs.getBool('isAuthenticated') ?? false;
@@ -24,12 +22,9 @@ class AuthMockService with ChangeNotifier {
     notifyListeners();
   }
   
-  // Método de login com email e senha
   Future<bool> login(String email, String password, {String? appType}) async {
-    // Simulação de delay de rede
     await Future.delayed(const Duration(milliseconds: 800));
     
-    // Verifica se a senha corresponde à senha fixa
     if (password == _fixedPassword) {
       _isAuthenticated = true;
       _currentAppType = appType;

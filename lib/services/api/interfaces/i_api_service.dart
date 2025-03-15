@@ -22,6 +22,20 @@ abstract class IApiService {
     MessageContext? context,
   });
 
+  /// Envia uma mensagem para a API e retorna um stream com a resposta do modelo LLM
+  ///
+  /// Parâmetros:
+  /// - [message]: O texto da mensagem enviada pelo usuário
+  /// - [flavor]: O flavor da aplicação (ex: 'christian', 'default')
+  /// - [context]: Contexto opcional da conversa, incluindo histórico e preferências
+  ///
+  /// Retorna um Stream<String> com a resposta do modelo LLM em tempo real
+  Stream<String> sendMessageStream({
+    required String message,
+    required String flavor,
+    MessageContext? context,
+  });
+
   /// Obtém versículos bíblicos aleatórios com base em um tema opcional
   ///
   /// Parâmetros:

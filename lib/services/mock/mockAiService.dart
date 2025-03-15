@@ -64,6 +64,25 @@ class MockAiService implements IApiService {
     }
   }
 
+  @override
+  Stream<String> sendMessageStream({
+    required String message,
+    required String flavor,
+    MessageContext? context,
+  }) async* {
+    final response = _getMockResponse(message);
+    
+    final words = response.split(' ');
+    
+    for (var i = 0; i < words.length; i++) {
+      final chunk = words[i] + (i < words.length - 1 ? ' ' : '');
+      
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      yield chunk;
+    }
+  }
+
   // Método legado (mantido para compatibilidade com código atual)
   /// Envia uma mensagem e retorna a resposta como string
   Future<String> sendMessageLegacy(String message) async {
@@ -89,7 +108,6 @@ class MockAiService implements IApiService {
           context: context,
         );
 
-        // Armazenar mensagens
         _storeMessage(message, true);
         _storeMessage(response.response, false);
 
@@ -103,7 +121,6 @@ class MockAiService implements IApiService {
         return 'Erro ao processar mensagem: ${e.toString()}';
       }
     } else {
-      // Usar resposta mockada em modo offline
       final mockResponse = _getMockResponse(message);
 
       // Armazenar mensagens

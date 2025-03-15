@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:jesusapp/chat/chatController.dart';
-import 'package:jesusapp/service/mockAiService.dart';
-import 'package:jesusapp/service/authMockService.dart';
+import 'package:jesusapp/services/mock/mockAiService.dart';
+import 'package:jesusapp/services/mock/authMockService.dart';
 import 'package:jesusapp/services/api/chat-llm/api_verse_service.dart';
+import 'package:jesusapp/services/api/api_service.dart';
 import 'package:jesusapp/theme/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:jesusapp/screens/login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jesusapp/services/api/interfaces/i_verse_service.dart';
+import 'package:jesusapp/services/api/interfaces/i_api_service.dart';
 import 'package:jesusapp/services/api/mock/mock_verse_service.dart';
 import 'package:jesusapp/services/api/mock/mock_prayer_service.dart';
 
@@ -34,12 +36,10 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        // ThemeProvider deve vir primeiro, pois outros providers dependem dele
         ChangeNotifierProvider.value(
           value: themeProvider,
         ),
 
-        // IVerseService vem em seguida para garantir que esteja disponível para outros providers
         Provider<IVerseService>(
           create: (context) {
             if (useRealApi) {
@@ -50,31 +50,35 @@ void main() async {
           },
         ),
 
-        // Serviço de autenticação
+        Provider<IApiService>(
+          create: (context) {
+            final flavor =
+                themeProvider.getConfig<String>('appType', defaultValue: '');
+            if (useRealApi) {
+              return ApiService(flavor);
+            } else {
+              return MockAiService(initialFlavor: flavor);
+            }
+          },
+        ),
+
         ChangeNotifierProvider(
           create: (_) => AuthMockService(),
         ),
 
-        // ChatController por último, já que depende dos providers anteriores
-        ChangeNotifierProxyProvider<ThemeProvider, ChatController>(
-          // Não use contexto diretamente no construtor
-          create: (context) {
-            final flavor =
-                themeProvider.getConfig<String>('appType', defaultValue: '');
-            return ChatController(
-              apiService: MockAiService(initialFlavor: flavor),
-              themeProvider: themeProvider, context: context,
-        
-            );
-          },
-          update: (context, themeProvider, previous) {
-            final flavor =
-                themeProvider.getConfig<String>('appType', defaultValue: '');
+        ChangeNotifierProxyProvider3<ThemeProvider, IVerseService, IApiService,
+            ChatController>(
+          create: (context) => ChatController(
+            apiService: Provider.of<IApiService>(context, listen: false),
+            themeProvider: themeProvider,
+            verseService: Provider.of<IVerseService>(context, listen: false),
+          ),
+          update: (context, themeProvider, verseService, apiService, previous) {
             return previous ??
                 ChatController(
-                  apiService: MockAiService(initialFlavor: flavor),
-                  themeProvider: themeProvider, context: context,
-                  // Remova context do construtor se possível
+                  apiService: apiService,
+                  themeProvider: themeProvider,
+                  verseService: verseService,
                 );
           },
         ),
