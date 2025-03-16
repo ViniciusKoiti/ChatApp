@@ -86,131 +86,115 @@ class ChatController extends ChangeNotifier {
     _fetchAiResponse(message);
   }
 
-  Future<void> _fetchAiResponse(String message) async {
+Future<void> _fetchAiResponse(String message) async {
   try {
     _isLoading = true;
     notifyListeners();
 
-    // Verificar se a mensagem é uma busca por versículo
-    if (message.toLowerCase().contains('versículo') ||
-        message.toLowerCase().contains('verso') ||
-        message.toLowerCase().contains('passagem')) {
-      try {
-        // Tentar encontrar versículos com base na consulta
-        final verses = await verseService.searchVerses(message);
-
-        if (verses.isNotEmpty) {
-          // Formatar a resposta com os versículos encontrados
-          String response = 'Encontrei estes versículos para você:\n\n';
-
-          for (var verse in verses.take(3)) {
-            // Limitar a 3 resultados
-            response += '📖 "${verse.text}" - ${verse.reference}\n\n';
-          }
-
-          _messages.add({
-            'role': 'ai',
-            'text': response.trim(),
-          });
-
-          _isLoading = false;
-          notifyListeners();
-          return;
-        }
-      } catch (e) {
-        debugPrint('Erro ao buscar versículos: $e');
-        // Continuar com a resposta normal do AI se a busca falhar
-      }
-    }
-
-    // Obter o flavor atual
-    final flavor =
-        themeProvider.getConfig<String>('appType', defaultValue: '');
+    final flavor = themeProvider.getConfig<String>('appType', defaultValue: '');
     debugPrint('sendMessage: $message, $flavor');
-    
-    // Adicionar uma mensagem vazia do AI que será atualizada com o stream
-    final messageIndex = _messages.length;
-    _messages.add({
-      'role': 'ai',
-      'text': '',
-      'references': [],
-      'suggestions': [],
-    });
-    notifyListeners();
-    
-    // Iniciar o stream de resposta
-    String fullResponse = '';
-    
-    try {
-      debugPrint('Iniciando stream de resposta...');
-      final stream = apiService.sendMessageStream(
-        message: message,
-        flavor: flavor,
-        context: null,
-      );
 
-      
-      
-      await for (final chunk in stream) {
-        debugPrint('Chunk recebido: ${chunk.length} caracteres');
-        print(chunk);
-        // Adicionar o novo chunk à resposta completa
-        fullResponse += chunk;
-        
-        // CRÍTICO: Criar um NOVO objeto Map em vez de modificar o existente
-        // Isso garante que o Flutter detecte a mudança e reconstrua o widget
-        _messages[messageIndex] = {
-          'role': 'ai',
-          'text': fullResponse,
-          'references': _messages[messageIndex]['references'] ?? [],
-          'suggestions': _messages[messageIndex]['suggestions'] ?? [],
-        };
-        
-        // Notificar IMEDIATAMENTE após cada chunk para atualização da UI
-        notifyListeners();
-      }
-    } catch (e) {
-      debugPrint('Erro no stream: $e');
-      // Em caso de erro no stream, tenta o método não-streaming como fallback
-      try {
-        final response = await apiService.sendMessage(
-          message: message,
-          flavor: flavor,
-          context: null,
-        );
-        
-        _messages[messageIndex] = {
-          'role': 'ai',
-          'text': response.response,
-          'references': response.references,
-          'suggestions': response.suggestions,
-        };
-      } catch (fallbackError) {
-        debugPrint('Erro no fallback: $fallbackError');
-        _messages[messageIndex] = {
-          'role': 'ai',
-          'text': 'Desculpe, houve um erro ao processar sua mensagem. Por favor, tente novamente.',
-          'references': [],
-          'suggestions': [],
-        };
-      }
-    }
+    final messageIndex = _initializeMessage();
+
+    final stream = apiService.sendMessageStream(
+      message: message,
+      flavor: flavor,
+      context: null,
+    );
+
+    await _processResponseStream(stream, messageIndex);
+
   } catch (e) {
-    // Fallback para serviço legado ou tratamento de erro
-    if (apiService is MockAiService) {
-      final legacyResponse =
-          await (apiService as MockAiService).sendMessageLegacy(message);
-      _messages.add({'role': 'ai', 'text': legacyResponse});
-    } else {
-      _messages.add({
-        'role': 'ai',
-        'text':
-            'Desculpe, houve um erro ao processar sua mensagem. Por favor, tente novamente.'
-      });
-    }
+    debugPrint('Erro inesperado: $e');
+    await _fetchAiResponseFallback(message);
   } finally {
     _isLoading = false;
     notifyListeners();
+  }
+}
+
+
+int _initializeMessage() {
+  final messageIndex = _messages.length;
+  _messages.add({
+    'role': 'ai',
+    'text': 'Digitando...',
+    'references': [],
+    'suggestions': [],
+  });
+  notifyListeners();
+  return messageIndex;
+}
+
+Future<void> _processResponseStream(
+  Stream<String> stream, 
+  int messageIndex
+) async {
+  String fullResponse = '';
+
+  try {
+    await for (final chunk in stream) {
+      debugPrint('Chunk recebido: ${chunk.length} caracteres');
+
+      fullResponse += chunk;
+
+      _updateMessage(
+        index: messageIndex,
+        text: fullResponse.endsWith('.') ? fullResponse : '$fullResponse...',
+      );
+
+      await Future.delayed(const Duration(milliseconds: 20));
+    }
+
+    _updateMessage(
+      index: messageIndex,
+      text: fullResponse.trimRight().replaceAll(RegExp(r'\.{3}$'), ''),
+    );
+
+  } catch (e) {
+    debugPrint('Erro no processamento do stream: $e');
+    await _fetchAiResponseFallback(_messages[messageIndex]['text']);
+  }
+}
+
+void _updateMessage({
+  required int index,
+  required String text,
+  List<dynamic>? references,
+  List<dynamic>? suggestions,
+}) {
+  _messages[index] = {
+    'role': 'ai',
+    'text': text,
+    'references': references ?? _messages[index]['references'] ?? [],
+    'suggestions': suggestions ?? _messages[index]['suggestions'] ?? [],
+  };
+  notifyListeners();
+}
+
+Future<void> _fetchAiResponseFallback(String message) async {
+  try {
+    final response = await apiService.sendMessage(
+      message: message,
+      flavor: themeProvider.getConfig<String>('appType', defaultValue: ''),
+      context: null,
+    );
+
+    _updateMessage(
+      index: _messages.length - 1,
+      text: response.response,
+      references: response.references,
+      suggestions: response.suggestions,
+    );
+
+  } catch (fallbackError, stackTrace) {
+    debugPrint('Erro no fallback: $fallbackError');
+    debugPrint(stackTrace.toString());
+
+    _updateMessage(
+      index: _messages.length - 1,
+      text: 'Erro ao processar resposta. Tente novamente mais tarde.',
+    );
   }
 }
 

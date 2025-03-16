@@ -83,17 +83,31 @@ Stream<String> sendMessageStream({
     // Acessando o Stream da resposta
     final Stream<Uint8List> responseStream = response.data.stream;
 
-    // Lendo os chunks um por um
-    await for (Uint8List chunk in responseStream) {
-      logDebug('Recebido chunk: $chunk'); // Log do chunk bruto
+    String buffer = ''; // Buffer para armazenar palavras incompletas
 
+    yield '...';
+
+    await for (Uint8List chunk in responseStream) {
       try {
         final String text = utf8.decode(chunk); // Decodifica chunk para texto
-        logDebug('Chunk decodificado: $text'); // Log do texto recebido
-        yield text; // Emite cada pedaço para quem consumir o stream
+        logDebug('Chunk decodificado: $text');
+
+        buffer += text; // Acumula no buffer
+
+        final words = buffer.split(' '); // Divide em palavras
+        buffer = words.removeLast(); // Mantém a última palavra (pode estar incompleta)
+
+        for (final word in words) {
+          yield word + ' '; // Emite a palavra com um espaço
+          await Future.delayed(const Duration(milliseconds: 10)); // Simula o tempo do mock
+        }
       } catch (e) {
         logError('Erro ao decodificar chunk: $e', e);
       }
+    }
+
+    if (buffer.isNotEmpty) {
+      yield buffer; // Emite qualquer parte final restante
     }
 
   } on DioException catch (e) {
@@ -107,6 +121,7 @@ Stream<String> sendMessageStream({
     );
   }
 }
+
 
   @override
   Future<ChatResponse> sendMessage({
